@@ -67,6 +67,9 @@ FROM
 		rw,
 		subs_id,
 		date_id,
+		_FLAG,
+		ROW_NUMBER() OVER (PARTITION BY subs_id, _FLAG ORDER BY date_id) rn1,
+		ROW_NUMBER() OVER (PARTITION BY subs_id ORDER BY date_id) rn2,
 		CASE 
 			WHEN _FLAG = 1 THEN 
 				ROW_NUMBER() OVER (PARTITION BY subs_id, _FLAG ORDER BY date_id) - _FLAG 
@@ -92,6 +95,7 @@ GROUP BY
 ORDER BY
     subs_id,
     START_DTTM;
+
 
 
 
