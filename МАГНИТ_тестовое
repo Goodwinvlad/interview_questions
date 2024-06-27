@@ -75,19 +75,34 @@ print(max_cnt_letters(s))
 -- Ранг товара в количестве заказов(больше заказов выше ранг)
 -- Результат должен быть отсортирован по убыванию количества заказов.
 
-WITH CTE AS (
-SELECT * FROM Products p
-LEFT JOIN
-SELECT * FROM Orders o
-ON p.ProductID = o.ProductID
-),
-
 SELECT 
-    ProductName,
-    COUNT(OrderID) as cnt_orders,
-    SUM(Price) as sum_proce,
-    ROW_NUMBER() OVER (ORDER BY cnt_orders  DESC) as rn
+    p.ProductName,
+    COUNT(o.OrderID) AS OrderCount,
+    SUM(p.Price) * COUNT(o.OrderID) AS TotalAmount,
+    RANK() OVER (ORDER BY COUNT(o.OrderID) DESC) AS OrderRank
+FROM 
+    Products p
+JOIN 
+    Orders o ON p.ProductID = o.ProductID
+GROUP BY 
+    p.ProductID, p.ProductName, p.Price
+ORDER BY 
+    OrderCount DESC;
+```
 
-FROM CTE
-GROUP BY ProductName
-ORDER BY COUNT(OrderID) DESC
+Давайте разберем запрос по частям:
+
+1. `SELECT p.ProductName, COUNT(o.OrderID) AS OrderCount, SUM(p.Price) * COUNT(o.OrderID) AS TotalAmount, RANK() OVER (ORDER BY COUNT(o.OrderID) DESC) AS OrderRank`:
+   - `p.ProductName` — выбираем имя продукта.
+   - `COUNT(o.OrderID) AS OrderCount` — подсчитываем количество заказов для каждого продукта.
+   - `SUM(p.Price) * COUNT(o.OrderID) AS TotalAmount` — вычисляем общую сумму заказов для каждого продукта.
+   - `RANK() OVER (ORDER BY COUNT(o.OrderID) DESC) AS OrderRank` — присваиваем ранг каждому продукту на основе количества заказов, где большее количество заказов получает более высокий ранг.
+
+2. `FROM Products p JOIN Orders o ON p.ProductID = o.ProductID`:
+   - Объединяем таблицы "Products" и "Orders" по полю `ProductID`.
+
+3. `GROUP BY p.ProductID, p.ProductName, p.Price`:
+   - Группируем результаты по `ProductID`, `ProductName` и `Price`, чтобы агрегировать данные.
+
+4. `ORDER BY OrderCount DESC`:
+   - Сортируем результаты по количеству заказов в порядке убывания.
