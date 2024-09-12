@@ -1,0 +1,275 @@
+
+FROM
+JOIN
+WHERE
+GROUP BY
+HAVING
+SELECT
+ORDER
+LIMIT
+
+
+
+
+
+
+
+
+Задача №1
+
+В БД есть таблица users:
+CREATE TABLE users
+  (
+    userid        int8,
+    phone         text
+  );
+
+В ней есть поле phone.
+Напиши запрос, который выведет только дублирующиеся номера телефонов в порядке убывания по количеству дублей.
+Формат ответа: столбцы phone, number_of_takes (кол-во дублей), отсортированные по убыванию number_of_takes.
+
+SELECT
+
+    phone,
+    COUNT(*) AS number_of_takes
+
+FROM 
+    users
+GROUPN BY 
+    phone
+HAVING 
+    COUNT(*) > 1
+ORDER BY 
+    number_of_takes DESC
+
+
+
+
+Задача №2
+
+Есть две таблицы:
+
+1) users с колонками:
+
+user_id (уникальный идентификатор каждого пользователя)
+username (имя пользователя)
+
+2) transactions с колонками:
+
+transaction_id (уникальный идентификатор каждой транзакции)
+user_id (внешний ключ, ссылается на user_id в таблице users)
+amount (сумма транзакции)
+transaction_date (дата транзакции)
+
+Нужны имена пользователей, у которых сумма всех транзакций за последний месяц превышает 1000 рублей.
+
+
+SELECT 
+u.username
+
+FROM users u
+JOIN transactions t 
+ON u.user_id = t.user_id
+
+WHERE 
+    t.transaction_date >= '2024-08-01' AND t.transaction_date < '2024-08-01' 
+    
+GROUP BY
+    username
+
+HAVING
+    SUM(amount) > 1000
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Задача №3
+В БД создана таблица user_hits:
+
+CREATE TABLE user_hits
+  (
+    userid        int8,
+    ç   date,
+    page          text
+  );
+
+  
+
+В поле page этой таблицы передается полный URL страницы (с параметрами).
+Напиши запрос, который выведет топ-5 уникальных наиболее посещаемых
+страниц за 7 дней от текущей даты.
+
+
+
+
+  
+-- user1 | /page
+-- user2 | /page
+-- user3 | /some/other/page/?utm_medium=performance_cpc
+-- user4 | /some/other/page/?utm_medium=digital_media
+-- user5 | /some/other/page/?utm_medium=partnes&q=1213&some_param=some_value
+-- user6 | /some/other/page/?utm_medium=digital_media&fromm=213445
+
+
+SELECT
+    page,
+    COUNT(userid) AS visits
+
+FROM
+    user_hits
+WHERE 
+    date >= CURRENT_DATE - INTERVAL '7 days'
+
+GROUP BY
+    page
+
+ORDER BY
+    COUNT(userid) DESC
+
+LIMIT 5
+
+
+
+  
+
+
+
+
+Задача №4
+ 
+Есть таблица с транзакциями и таблица курса ЦБ. Необходимо написать запрос, рассчитывающий транзакции в рублевом эквиваленте (без создания временных таблиц )
+Курс ЦБ на выходные не публикуется, в выходной пользоваться курсом последнего рабочего дня
+
+
+date         sum    currency
+31.12.2016     10          usd
+01.01.2017     20          usd
+02.01.2017     30          usd
+03.01.2017     40          usd
+04.01.2017     50          usd
+05.01.2017     60          usd
+06.01.2017     70          usd
+
+
+
+date        exchange_rate    currency
+30.12.2016        55,2        usd
+31.12.2016        55,4        usd
+10.01.2017        54,3        usd
+11.01.2017        54,2        usd
+
+
+SELECT 
+    *,
+    t1.sum * t2,exchange_rate as sum_rub 
+    
+
+FROM t1
+JOIN t2
+ON 
+    t1.currency => t2.currency AN
+    t1.date = t2.date
+
+
+
+
+select 
+    t1.date,
+    t1.sum ,
+    case when t1.date in (select date FROM exchange_rub_table) then t1.sum * (select exchange_rate FROM exchange_rub_table where t1.date=date)
+        else  t1.sum * (select max(exchange_rate)  from exchange_rub_table WHERE date < t1.date) 
+              end as ff
+from  transact_table as t1
+
+
+
+
+
+
+__________________________________________________________________________________________________________________
+
+
+
+
+
+
+
+
+Задача 1
+
+У датафрейма есть колонки:
+
+- timestamp
+- user_id
+- event_name
+- event_value
+- event_params
+
+
+Как получить датафрейм только с колонками timestamp, user_id и event_name?
+
+df_f = df[['timestamp', 'user_id', 'event_name']]
+
+
+Задача 2
+
+Даны 2 серии. Как найти значения серии p1 которых нет в серии p2?
+
+import pandas as pd
+
+p1 = pd.Series([2, 4, 6, 8, 10])
+p2 = pd.Series([8, 10, 12, 14, 16])
+
+res = p1[~p1.isin(p2)]
+
+
+Задача 3
+
+У датафрейма df есть колонки:
+ - report_date
+ - user_id
+ - revenue
+
+Сумма revenue равна 1000.
+Сделай так, чтобы из этого датафрейма стало два датафрейма с теми же колонками, но один с удвоенным revenue, второй с утроенным.
+
+df_c2 = df.copy()
+df_c2['rev_x2] = df_c2['revenue'] *2
+
+df_c3 = df.copy()
+df_c3['rev_x2] = df_c3['revenue'] *3
+
+Задача 4
+
+есть датафрейм df. в нем колонки 
+
+    sale_date - дата продажи
+    id -  ID товара
+    product_name -  названии товара
+    price - цена
+    quantity - количество
+    discount - скидка (если небыло - NaN)
+    сlient_id - Id клиента
+    
+Нужно найти 
+    - среднюю цену товара по дням недели, с учетом скидки
+    - топ-5 самых продаваемых товаров за последние 3 месяца
+    - количество уникальных покупателей, купивших каждый товар
+
+
+df['day_of_week'] = df['sale_date'].dt.day_name()
+df['discount'] = df['discount'].fillna(0)
+df['price_with_d'] = df['price'] * (1 - df['discount'])
+df.groupby('day_of_week')['price_with_d'].mean()
+
+
