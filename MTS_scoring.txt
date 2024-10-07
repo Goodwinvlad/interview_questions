@@ -16,7 +16,35 @@
 | 2         | 25.02.2022 10:30:00 | stop           |
 +-----------+---------------------+----------------+
 
+WITH ServerPeriods AS (
+  SELECT 
+    server_id,
+    status_time AS start_time,
+    LEAD(status_time) OVER (PARTITION BY server_id ORDER BY status_time) AS stop_time
+  FROM 
+    server_utilization
+  WHERE 
+    session_status = 'start'
+),
+ServerDurations AS (
+  SELECT 
+    server_id,
+    TIMESTAMPDIFF(SECOND, start_time, stop_time) AS duration_seconds
+  FROM 
+    ServerPeriods
+  WHERE 
+    stop_time IS NOT NULL
+)
+SELECT 
+  server_id,
+  SUM(duration_seconds) AS total_duration_seconds,
+  SEC_TO_TIME(SUM(duration_seconds)) AS total_duration_time
+FROM 
+  ServerDurations
+GROUP BY 
+  server_id;
 
+-- МОЕ РЕШЕНИЕ -- МОЕ РЕШЕНИЕ -- МОЕ РЕШЕНИЕ -- МОЕ РЕШЕНИЕ -- МОЕ РЕШЕНИЕ -- МОЕ РЕШЕНИЕ -- МОЕ РЕШЕНИЕ -- МОЕ РЕШЕНИЕ
 
 WITH CTE AS (
 SELECT 
@@ -63,9 +91,19 @@ pizza_toppings
 
 
 
-SELECT
-DISTINCT topping_name
-FROM pizza_toppings
+SELECT 
+    t1.topping_name AS Topping1,
+    t2.topping_name AS Topping2,
+    t3.topping_name AS Topping3,
+    (t1.ingredient_cost + t2.ingredient_cost + t3.ingredient_cost) AS Total_Cost
+FROM 
+    pizza_toppings t1
+JOIN 
+    pizza_toppings t2 ON t1.topping_name < t2.topping_name
+JOIN 
+    pizza_toppings t3 ON t2.topping_name < t3.topping_name
+
+-- МОЕ РЕШЕНИЕ -- МОЕ РЕШЕНИЕ -- МОЕ РЕШЕНИЕ -- МОЕ РЕШЕНИЕ -- МОЕ РЕШЕНИЕ -- МОЕ РЕШЕНИЕ -- МОЕ РЕШЕНИЕ -- МОЕ РЕШЕНИЕ
 
 
 df['col'] = '1'
