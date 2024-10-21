@@ -53,51 +53,74 @@ SubsID              DateID
 
 ----------------------
 РЕШЕНИЕ
+Для преобразования таблицы посещений в таблицу сессий, где сессия прерывается, 
+	если следующий день отсутствует, можно воспользоваться оконными функциями в SQL. 
+	Алгоритм основан на использовании функции LAG для определения разрыва между датами.
 
+Вот пример SQL-запроса, который решает данную задачу:
 
-SELECT
-    subs_id AS subs_id,
-    MIN(date_id) AS START_DTTM,
-    MAX(date_id) AS END_DTTM
-FROM
+WITH RankedVisits AS (
+    SELECT 
+        SubsID, 
+        DateID,
+        LAG(DateID) OVER (PARTITION BY SubsID ORDER BY DateID) AS PrevDateID
+    FROM 
+        Table_SQL
+),
+SessionGroups AS (
+    SELECT 
+        SubsID, 
+        DateID,
+        CASE 
+            WHEN PrevDateID IS NULL OR DateID <> DATEADD(DAY, 1, PrevDateID) THEN 1
+            ELSE 0
+        END AS IsNewSession
+    FROM 
+        RankedVisits
+),
+SessionNumbers AS (
+    SELECT 
+        SubsID, 
+        DateID,
+        SUM(IsNewSession) OVER (PARTITION BY SubsID ORDER BY DateID) AS SessionNumber
+    FROM 
+        SessionGroups
+),
+SessionRanges AS (
+    SELECT 
+        SubsID, 
+        MIN(DateID) AS START_DTTM, 
+        MAX(DateID) AS END_DTTM
+    FROM 
+        SessionNumbers
+    GROUP BY 
+        SubsID, SessionNumber
+)
+SELECT 
+    SubsID, 
+    START_DTTM, 
+    END_DTTM
+FROM 
+    SessionRanges
+ORDER BY 
+    SubsID, START_DTTM;
+### Объяснение:
 
-    (
+1. RankedVisits: Используем функцию LAG для получения предыдущей даты посещения для каждого абонента (SubsID). 
+	Это позволяет нам определить, является ли текущая дата продолжением предыдущей.
 
-	SELECT
-		rw,
-		subs_id,
-		date_id,
-		_FLAG,
-		ROW_NUMBER() OVER (PARTITION BY subs_id, _FLAG ORDER BY date_id) rn1,
-		ROW_NUMBER() OVER (PARTITION BY subs_id ORDER BY date_id) rn2,
-		CASE 
-			WHEN _FLAG = 1 THEN 
-				ROW_NUMBER() OVER (PARTITION BY subs_id, _FLAG ORDER BY date_id) - _FLAG 
-			ELSE 
-				ROW_NUMBER() OVER (PARTITION BY subs_id ORDER BY date_id) 
-				- ROW_NUMBER() OVER (PARTITION BY subs_id, _FLAG ORDER BY date_id) 
-			END AS grp
-	FROM	
-				(   
-					SELECT
-					ROW_NUMBER() OVER () AS rw,
-						subs_id,
-						date_id,
-					CASE WHEN 
-					LEAD(date_id) OVER (partition by subs_id ORDER BY date_id) - date_id > 1 THEN 1 ELSE 0 END as _FLAG
-					FROM users_tele_2
-				) t1		
-    ) t2
-	
-GROUP BY
-    subs_id,
-    grp
-ORDER BY
-    subs_id,
-    START_DTTM;
+2. SessionGroups: Определяем, является ли текущая дата началом новой сессии. 
+	Это происходит, если предыдущая дата отсутствует или не является днем перед текущей.
 
+3. SessionNumbers: Присваиваем каждой сессии уникальный номер. 
+	Это достигается с помощью аккумуляции с использованием функции SUM по флагу IsNewSession.
 
+4. SessionRanges: Для каждой уникальной сессии (группы с одинаковым SessionNumber) определяем начало и конец сессии с помощью MIN и MAX.
 
+5. Финальный SELECT: Извлекаем и сортируем результаты, чтобы получить список сессий.
+
+Этот запрос создаст таблицу сессий, где каждая сессия начинается и заканчивается в указанный диапазон дат. 
+	Убедитесь, что в вашей базе данных поддерживаются оконные функции, так как они используются для реализации этого решения.
 
 
 
