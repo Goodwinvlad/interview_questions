@@ -1,0 +1,81 @@
+PY
+Задана строка S из малых латинских букв, требуется узнать длину наибольшей подстроки, в которой все буквы одинаковы.
+Например:
+1) "" -> 0
+2) "a" -> 1 
+3) "abbc" -> 2
+4) "adddaabaa" -> 3
+
+
+
+def longest_uniform_substring_length(s):
+    if not s:
+        return 0
+    
+    max_length = 1
+    current_length = 1
+    
+    for i in range(1, len(s)):
+        if s[i] == s[i - 1]:
+            current_length += 1
+        else:
+            if current_length > max_length:
+                max_length = current_length
+            current_length = 1
+    
+    # Проверить последний текущий блок
+    if current_length > max_length:
+        max_length = current_length
+    
+    return max_length
+
+
+
+
+
+
+
+
+SQL
+
+У вас есть таблица  с данными в виде:
+user_id, order_id, time
+
+Нужно вывести топ-5% пользователей по общему числу поездок за некоторый период.
+
+WITH UserTripCounts AS (
+    SELECT 
+        user_id,
+        COUNT(order_id) AS trip_count
+    FROM 
+        orders
+    WHERE
+        time >= DATEADD(YEAR, -1, GETDATE()) -- Измените на нужный вам период времени
+    GROUP BY 
+        user_id
+),
+UserRanks AS (
+    SELECT 
+        user_id,
+        trip_count,
+        ROW_NUMBER() OVER (ORDER BY trip_count DESC) AS rank
+    FROM 
+        UserTripCounts
+),
+TotalUsers AS (
+    SELECT 
+        COUNT(*) AS total_count
+    FROM 
+        UserTripCounts
+)
+SELECT 
+    ur.user_id,
+    ur.trip_count
+FROM 
+    UserRanks ur
+CROSS JOIN 
+    TotalUsers tu
+WHERE 
+    ur.rank <= tu.total_count * 0.05
+ORDER BY 
+    ur.trip_count DESC;
