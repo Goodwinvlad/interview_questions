@@ -1,0 +1,86 @@
+Есть следующие таблицы:
+
+Stores
+    store_id INT            --id магазина
+    store_format  VARCHAR   --формат магазина (Outlet, Concept)
+    store_name VARCHAR      --название магазина
+    manager_id INT          --id менеджера магазина
+    
+Receipts
+    receipt_id INT          --id чека
+    receipt_dttm DATE       --дата и время создания чека
+    salesman_name VARCHAR   --ФИО продавца
+    payment_type_id INT     --id метода оплаты
+    
+Sales
+    store_id INT        --id магазина
+    receipt_id INT      --id чека
+    receipt_ln INT      --номер позиции в чеке
+    product_id INT      --id товара
+    price NUMBER        --цена за ед товара
+    qty NUMBER          --количество товара в чеке    
+
+PaymentType
+    payment_type_id INT       --id метода оплаты
+    payment_type_name VARCHAR --название метода оплаты
+
+Задание: 
+В Январе 2024 года в сети розничных магазинов Lamoda Sport был запущен новый метод оплаты покупок ('СБП'). 
+Необходимо для каждого магазина сравнить среднюю стоимость чека до введения нового метода оплаты и после.
+
+Пример результата:
++------------------+-----------------+----------------+
+| store_name       | avg_rcpt_before | avg_rcpt_after |
++------------------+-----------------+----------------+
+| Магазин 1        | 1200            | 1500           |
+| Магазин 2        | 950             | 1100           |
+| Магазин 3        | 1400            | 1600           |
++------------------+-----------------+----------------+
+
+WITH Sales_grp AS (
+SELECT
+    res.receipt_dttm,
+    sl.store_id,
+    sl.receipt_id,
+    res.payment_type_name,
+    SUM(sl.price * sl.qty) as total_sum
+FROM Sales sl 
+JOIN Receipts res 
+    ON sl.receipt_id = res.receipt_id
+JOIN PaymentType pt 
+    ON res.payment_type_id = pt.payment_type_id
+GROUP BY res.receipt_dttm, sl.store_id, sl.receipt_id, res.payment_type_name
+),
+First_pay AS (
+SELECT store_id,  MIN(receipt_dttm) as first_new_pay FROM Sales_grp WHERE payment_type_name = 'СБП' GROUP BY store_id
+)
+SELECT 
+    str.store_name,
+    AVG(CASE WHEN receipt_dttm < fp.first_new_pay THEN slg.total_sum ELSE NULL END) AS avg_rcpt_before,
+    AVG(CASE WHEN receipt_dttm >= fp.first_new_pay THEN slg.total_sum ELSE NULL END) AS avg_rcpt_after
+FROM Sales_grp slg
+    JOIN First_pay fp ON slg.store_id = fp.store_id 
+    JOIN Stores str ON slg.store_id = str.store_id
+GROUP BY store_name
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
