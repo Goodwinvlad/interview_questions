@@ -65,11 +65,79 @@ GROUP BY store_name
 
 
 
+------------------------------------------------------------------------------------------------------------------------------------------------
+1. Вывести клиентов, совершивших покупки во всех категориях и их доли трат в каждой 
+категории от общей суммы трат
+
+table
+customer_id             spent               category_id
+123                      700                    1
+345                      600                    2
+123                      444                    2
+455                      200                    3
 
 
+WITH category_count AS (
+    SELECT COUNT(DISTINCT category_id) AS total_categories
+    FROM table
+),
+customer_categories AS (
+    SELECT customer_id, COUNT(DISTINCT category_id) AS categories_count
+    FROM table
+    GROUP BY customer_id
+),
+customers_in_all_categories AS (
+    SELECT c.customer_id
+    FROM customer_categories c
+    JOIN category_count cc ON c.categories_count = cc.total_categories
+)
+SELECT 
+    t.customer_id, 
+    t.category_id, 
+    t.spent,
+    SUM(t.spent) OVER (PARTITION BY t.customer_id) AS total_spent,
+    t.spent / SUM(t.spent) OVER (PARTITION BY t.customer_id) AS spending_ratio
+FROM 
+    table t
+WHERE 
+    t.customer_id IN (SELECT customer_id FROM customers_in_all_categories);
+
+------------------------------------------------------------------------------------------------------------------------------------------------
+
+2. Есть таблицы:
+fct_operations (operation_id, operation_datetime, amount, currency, updated_at, mcc_code, cust_id)
+customer (cust_id, fio, birth_dt, effective_from, effective_to, updated_at) -- SCD Type 2
+dim_mcc (mcc_code, mcc_name)
+
+Нужно оптимально поддерживать актуальной таблицу:
+
+actual_data:
+
+cust_id,
+birh_dt,
+fio, 
+last_operation_mcc_name, последняя операция
+amount from fct_operations - сумма последней операции
 
 
+Для поддержания актуальности таблицы `actual_data`, которая содержит информацию о клиентах и их последней операции, 
+нам нужно разработать процесс, который будет регулярно обновлять эту таблицу на основе данных из `fct_operations`, `customer`, и `dim_mcc`. 
 
+Вот шаги, которые помогут вам оптимально поддерживать актуальность данных:
+
+### Шаги для обновления таблицы `actual_data`
+1. **Определение последней операции для каждого клиента**:
+   - Из таблицы `fct_operations` нужно выбрать последнюю операцию для каждого клиента на основе `operation_datetime`.
+
+2. **Получение актуальной информации о клиенте**:
+   - Так как таблица `customer` представляет собой Slowly Changing Dimension Type 2 (SCD Type 2), необходимо выбрать актуальную запись для каждого клиента. 
+Это можно сделать, выбрав записи, у которых `effective_to` равно бесконечности (или другой подходящий индикатор).
+
+3. **Соединение данных**:
+   - Соединяем данные последней операции клиента с актуальной информацией о клиенте и добавляем название MCC из таблицы `dim_mcc`.
+
+4. **Обновление таблицы `actual_data`**:
+   - Используем данные из предыдущих шагов, чтобы вставить или обновить записи в таблице `actual_data`.
 
 
 
