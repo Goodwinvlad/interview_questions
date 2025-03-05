@@ -1,0 +1,227 @@
+1.    Есть две таблицы t1 и t2
+
+t1.num1
+1
+2
+2
+3
+3
+4
+null
+null
+
+t2.num2
+1
+2
+2
+3
+5
+null
+null
+
+
+Что вернет запрос 
+select *
+from t1 
+left join t2 on t1.num1=t2.num2
+
+
+1 1
+2 2
+2 2
+2 2
+2 2
+3 3
+3 3
+4 null
+null null
+null null
+
+-----------------------
+
+Table
+1
+2
+3
+4
+5
+6
+7
+9
+
+Result
+1 2
+3 4
+5 6
+7 null
+9 null
+
+
+Есть табличка в которой в колонке хранятся четные и нечетные числа. 
+Необходимо написать запрос, который выведет в одной колонки четные в другой нечетные в порядке их возрастания
+Количество записей в выборке определяется максимальным количеством либо четных либо нечетных чисел в таблице. 
+Запрос необходимо написать для общего случая (для любых вариантов чисел в таблице)
+
+
+
+
+
+WITH CTE_ODD AS (
+SELECT 
+CASE WHEN NUM%2 == 0 THEN NUM END AS NUM_ODD,
+row_number() over(order by NUM_ODD) AS rn
+FROM Table
+WHERE NUM_ODD IS NOT NULL
+),
+CTE_not_ODD AS (
+CASE WHEN NUM%2 != 0 THEN NUM END AS NUM_not_ODD,
+row_number() over(order by NUM_not_ODD) AS rn
+FROM Table
+WHERE NUM_not_ODD IS NOT NULL
+)
+
+SELECT 
+    nod.CTE_not_ODD,
+    od.NUM_ODD
+FROM CTE_not_ODD od
+FULL JOIN CTE_ODD nod
+ON nod.rn = od.rn
+ORDER BY CTE_not_ODD
+
+-------------------------------------------
+
+
+У нас есть кластер серверов и данные о запуске и остановке сервера. 
+Надо посчитать активное время работы всех серверов в кластере. 
+Ответ должен быть в целых днях. 
+
+
+server_id    status_time                session_status  nxt_status_time
+  
+1            2024-11-12 10:10:00        start           2024-11-12 12:10:03
+1            2024-11-12 12:10:03        end   
+1            2024-11-12 10:11:00        start
+1            2024-11-12 12:12:03        end     
+2            2024-11-12 10:10:10        start           NULL
+1            2024-11-12 13:10:30        start
+1            2024-11-12 15:10:25        end
+
+WITH CTE AS (
+
+SELECT 
+server_id,
+status_time, 
+session_status,
+LEAD(status_time) OVER(PARTITION BY server_id ODER BY status_time) AS nxt_status_time
+)
+
+SELECT 
+server_id,
+
+
+SUM(COLEASCE(nxt_status_time, current_time) -  session_status) as work_time 
+FROM 
+CTE
+WHERE session_status == 'start'
+GROUP BY server_id
+
+-------------------------------------------
+
+1. Есть последовательность открывающих и закрывающих скобочек. Напишите функцию, которая проверяет ее корректность
+
+Корректные примеры:
+(())
+()()
+(()())
+
+Некорректные примеры:
+(
+)(
+(()
+())(
+
+
+s = '()((()'
+
+def check_borders(s):
+    if len(s) == 0:
+        return False    
+
+    
+    cnt_open = 0
+    cnt_closed = 0
+    for i in range(len(s)-1):
+        if s[i] == '(':
+            cnt_open += 1
+        elif s[i] == ')':
+            cnt_closed += 1
+        elif cnt_open < cnt_closed:
+            return False
+                
+    
+    return cnt_open == cnt_closed
+
+    
+    
+
+---------------------------
+
+
+2. Есть список чисел. Напишите функцию, которая находит моду (т.е. самое частое из значений)
+nums = [2, 3, 4, 6, 10, 2]
+nums = [2, 2, 2, 3, 3]
+
+nums_sorted = nums.sorted() # nums_sorted = [2, 2, 3, 4, 6, 10]
+
+
+max_cnt = 0
+curr_cnt = 1
+for i in range( len(nums_sorted)-1):
+    if nums_sorted[i] == nums_sorted[i+1]:
+        curr_cnt += 1
+        max_cnt = max(curr_cnt, max_cnt)
+    else:
+        curr_cnt == 1
+        
+return max_cnt        
+        
+    
+-----------------------------
+1. Кубик кидается 6 раз подряд. Какова вероятность, что за эти 6 раз буду выкинуты все 6 значений?
+    
+6/ 6 * 5/6 * 4/6 * 3/ 6 * 2/6 * 1/6
+
+
+-------------------------------
+
+
+2. Кубик кидается один раз. Но если выпавшее число не нравится - кубик можно перекинуть 1 раз. Какая оптимальная стратегия, чтобы получить максимальное число? 
+
+3/6 * 3/6
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
